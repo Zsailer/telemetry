@@ -3,9 +3,11 @@ from traitlets import TraitType, TraitError, validate
 
 
 class Handlers(TraitType):
-    """A trait that takes a list of logging handlers and converts
-    it to a callable that returns that list (thus, making this
-    trait pickleable). 
+    """A trait that takes a list of logging handlers. 
+
+    If a callable is given, the trait's validate 
+    method will call the function and expect verify
+    the output is a list of logging handler instances.
     """
     info_text = "a list of logging handlers"
 
