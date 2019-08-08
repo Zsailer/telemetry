@@ -1,20 +1,21 @@
 """
 Emit structured, discrete events when various actions happen.
 """
+import os
 import json
+import base64
 import logging
+import requests
 from datetime import datetime
 
 import jsonschema
 from pythonjsonlogger import jsonlogger
 from ruamel.yaml import YAML
 from traitlets import List
-from traitlets.config import Configurable, Config
 
-from .traits import Handlers
+from .traits import Configurable, InstanceContainer
 
 yaml = YAML(typ='safe')
-
 
 def _skip_message(record, **kwargs):
     """
@@ -25,6 +26,15 @@ def _skip_message(record, **kwargs):
     """
     del record['message']
     return json.dumps(record, **kwargs)
+
+
+class Handlers(InstanceContainer):
+    """A trait that takes a list of logging handlers and converts
+    it to a callable that returns that list (thus, making this
+    trait pickleable).
+    """
+    info_text = "a list of logging handlers"
+    _class = logging.Handler
 
 
 class EventLog(Configurable):
@@ -69,24 +79,6 @@ class EventLog(Configurable):
 
         self.schemas = {}
 
-    def _load_config(self, cfg, section_names=None, traits=None):
-        """Load EventLog traits from a Config object, patching the
-        handlers trait in the Config object to avoid deepcopy errors.
-
-        """
-        my_cfg = self._find_my_config(cfg)
-        handlers = my_cfg.pop("handlers", [])
-
-        # Turn handlers list into a pickeable function
-        def get_handlers():
-            return handlers
-
-        my_cfg["handlers"] = get_handlers
-
-        # Build a new eventlog config object.
-        eventlog_cfg = Config({"EventLog": my_cfg})
-        super(EventLog, self)._load_config(eventlog_cfg, section_names=None, traits=None)
-
     def register_schema_file(self, filename):
         """
         Convenience function for registering a JSON schema from a filepath
@@ -128,7 +120,7 @@ class EventLog(Configurable):
         Record given event with schema has occurred.
         """
         if not (self.handlers and schema_name in self.allowed_schemas):
-            # if handler isn't set up or schema is not explicitly whitelisted,
+            # if handler isn't set up or schema is not explicitly allowed,
             # don't do anything
             return
 
