@@ -1,0 +1,14 @@
+$id: example.schema
+version: 1
+title: My Event
+description: |
+  All events must have a name property
+type: object
+properties:
+  name:
+    title: Name
+    description: |
+        Name of event
+    type: string
+required:
+- name

@@ -24,7 +24,7 @@ except ImportError as e:
         # conda install the 'real' ruamel.yaml to fix
         raise ImportError("Missing dependency ruamel.yaml. Try: `conda install ruamel.yaml`")
 
-from traitlets import List
+from traitlets import List, Dict
 from traitlets.config import Configurable, Config
 
 from .traits import Handlers
@@ -50,24 +50,32 @@ class EventLog(Configurable):
     """
     handlers = Handlers(
         [],
-        config=True,
         allow_none=True,
         help="""A list of logging.Handler instances to send events to.
 
         When set to None (the default), events are discarded.
         """
-    )
+    ).tag(config=True)
 
     allowed_schemas = List(
         [],
-        config=True,
         help="""
         Fully qualified names of schemas to record.
 
         Each schema you want to record must be manually specified.
         The default, an empty list, means no events are recorded.
         """
-    )
+    ).tag(config=True)
+
+    subscriptions = Dict(
+        help="""
+        A mapping of registered schemas and callback methods. When the
+        registered event is triggered, the callback method will be called.
+
+        This is useful for recording custom event schemas or triggering
+        custom logic when an event happens.
+        """
+    ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -171,3 +179,10 @@ class EventLog(Configurable):
         }
         capsule.update(event)
         self.log.info(capsule)
+
+        # Handle subscriptions
+        try:
+            callback = self.subscriptions[schema_name]
+            callback(self, schema_name, version, event)
+        except KeyError:
+            pass
