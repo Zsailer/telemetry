@@ -183,6 +183,10 @@ class EventLog(Configurable):
         # Handle subscriptions
         try:
             callback = self.subscriptions[schema_name]
-            callback(self, schema_name, version, event)
+
+            def protected_record(schema_name, version, event):
+                return self.record_event(schema_name, version, event)
+
+            callback(protected_record, schema_name, version, event)
         except KeyError:
             pass

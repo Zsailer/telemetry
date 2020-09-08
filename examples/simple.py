@@ -31,6 +31,7 @@ handler = logging.StreamHandler(output)
 
 def callback(eventlog, name, version, event):
     print(eventlog, name, version, event)
+    breakpoint()
 
 
 config = {
